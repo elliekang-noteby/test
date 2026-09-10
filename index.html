@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080b0f">
+  <title>격리 구역 07 — 미스터리 방탈출</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070a0e;
+      --panel: rgba(15, 20, 25, .9);
+      --panel-2: #11171d;
+      --line: rgba(174, 236, 225, .14);
+      --text: #edf5f3;
+      --muted: #92a6a2;
+      --accent: #87ead5;
+      --accent-soft: rgba(135, 234, 213, .09);
+      --danger: #ff877d;
+      --shadow: 0 32px 100px rgba(0, 0, 0, .55);
+    }
+
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% 30%, rgba(31, 94, 85, .18), transparent 37%),
+        linear-gradient(150deg, #07090c 0%, #0a1014 52%, #06080b 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .28;
+      background-image:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: radial-gradient(circle, black, transparent 78%);
+    }
+
+    .ambient {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .ambient::before,
+    .ambient::after {
+      content: "";
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      border: 1px solid rgba(135, 234, 213, .08);
+      border-radius: 50%;
+    }
+    .ambient::before { top: -190px; right: -80px; }
+    .ambient::after { bottom: -210px; left: -120px; width: 430px; height: 430px; }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      width: min(100% - 32px, 820px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 32px 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(135, 234, 213, .3);
+      color: var(--accent);
+      background: rgba(135, 234, 213, .05);
+      border-radius: 9px;
+      box-shadow: inset 0 0 18px rgba(135, 234, 213, .05);
+    }
+    .brand-copy strong { display: block; font-size: .86rem; letter-spacing: .16em; }
+    .brand-copy span { display: block; margin-top: 2px; color: var(--muted); font: 500 .68rem/1.2 ui-monospace, monospace; letter-spacing: .08em; }
+
+    .records { display: flex; gap: 10px; }
+    .record {
+      min-width: 112px;
+      padding: 9px 13px;
+      border: 1px solid var(--line);
+      background: rgba(12, 17, 21, .65);
+      border-radius: 10px;
+    }
+    .record span { display: block; color: var(--muted); font-size: .72rem; }
+    .record strong { display: block; margin-top: 3px; color: var(--accent); font: 600 .92rem/1.2 ui-monospace, monospace; }
+
+    main { display: grid; place-items: center; }
+    .game-card {
+      position: relative;
+      width: 100%;
+      padding: clamp(26px, 5vw, 52px);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(145deg, rgba(18, 25, 30, .96), rgba(11, 15, 19, .96));
+      box-shadow: var(--shadow), inset 0 1px rgba(255,255,255,.035);
+    }
+    .game-card::after {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 2px;
+      background: linear-gradient(transparent, var(--accent), transparent);
+      opacity: .65;
+    }
+
+    .status-line { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 34px; }
+    .location { color: var(--accent); font: 600 .73rem/1.2 ui-monospace, monospace; letter-spacing: .13em; text-transform: uppercase; }
+    .turn-count { color: var(--muted); font: .75rem/1.2 ui-monospace, monospace; }
+    .turn-count b { color: var(--text); font-weight: 600; }
+
+    .content { transition: opacity .18s ease, transform .18s ease; }
+    .content.leaving { opacity: 0; transform: translateY(9px); }
+    .content.entering { animation: reveal .45s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes reveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+    .eyebrow { margin: 0 0 12px; color: var(--muted); font-size: .78rem; letter-spacing: .1em; }
+    h1 { margin: 0; font-size: clamp(1.75rem, 5vw, 2.65rem); line-height: 1.2; letter-spacing: -.045em; }
+    .story { max-width: 650px; min-height: 84px; margin: 22px 0 30px; color: #bdcbc8; font-size: clamp(1rem, 2.3vw, 1.08rem); line-height: 1.85; word-break: keep-all; }
+
+    .choices { display: grid; gap: 11px; }
+    .choice {
+      width: 100%;
+      min-height: 58px;
+      padding: 14px 17px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 12px;
+      color: var(--text);
+      background: rgba(255,255,255,.025);
+      font: inherit;
+      font-size: .96rem;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .18s ease, background .18s ease, transform .18s ease;
+    }
+    .choice:hover { border-color: rgba(135,234,213,.45); background: var(--accent-soft); transform: translateX(3px); }
+    .choice:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .key {
+      flex: 0 0 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      border: 1px solid rgba(135,234,213,.22);
+      border-radius: 7px;
+      font: 600 .76rem/1 ui-monospace, monospace;
+    }
+    .choice-text { flex: 1; }
+    .arrow { color: #61716e; transition: color .18s, transform .18s; }
+    .choice:hover .arrow { color: var(--accent); transform: translateX(3px); }
+
+    .ending-badge { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 7px 10px; border: 1px solid rgba(135,234,213,.24); border-radius: 999px; color: var(--accent); background: var(--accent-soft); font: 600 .72rem/1 ui-monospace, monospace; letter-spacing: .1em; }
+    .ending-badge.bad { color: var(--danger); border-color: rgba(255,135,125,.25); background: rgba(255,135,125,.07); }
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 28px 0 18px; }
+    .result-box { padding: 16px; border: 1px solid var(--line); border-radius: 11px; background: rgba(255,255,255,.025); }
+    .result-box span { display: block; color: var(--muted); font-size: .75rem; }
+    .result-box strong { display: block; margin-top: 7px; color: var(--text); font-size: 1.02rem; }
+    .restart { justify-content: center; border-color: rgba(135,234,213,.35); color: #07110f; background: var(--accent); font-weight: 750; }
+    .restart:hover { color: #07110f; background: #a4f5e3; transform: translateY(-2px); }
+
+    footer { text-align: center; color: #5e6c69; font: .7rem/1.4 ui-monospace, monospace; letter-spacing: .1em; }
+
+    @media (max-width: 620px) {
+      .shell { width: min(100% - 24px, 820px); padding: 18px 0 24px; gap: 18px; }
+      .topbar { align-items: flex-start; }
+      .brand-copy span { display: none; }
+      .records { gap: 6px; }
+      .record { min-width: 0; padding: 8px 10px; }
+      .record span { font-size: .64rem; }
+      .game-card { border-radius: 17px; }
+      .status-line { margin-bottom: 27px; }
+      .story { min-height: 110px; }
+      .result-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient" aria-hidden="true"></div>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 3h6v5l4 8.5A3 3 0 0 1 16.3 21H7.7A3 3 0 0 1 5 16.5L9 8V3Z"/><path d="M8 13h8"/></svg>
+        </div>
+        <div class="brand-copy"><strong>격리 구역 07</strong><span>ESCAPE PROTOCOL</span></div>
+      </div>
+      <div class="records" aria-label="게임 기록">
+        <div class="record"><span>최소 선택 기록</span><strong id="bestRecord">—</strong></div>
+        <div class="record"><span>찾아낸 엔딩 수</span><strong id="endingRecord">0 / 4</strong></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="game-card" aria-live="polite">
+        <div class="status-line">
+          <span class="location" id="location">LAB · 07</span>
+          <span class="turn-count">선택 <b id="turnCount">00</b></span>
+        </div>
+        <div class="content entering" id="content"></div>
+      </section>
+    </main>
+    <footer>CASE 07 · 기억보다 먼저 탈출하라</footer>
+  </div>
+
+  <script>
+    const scenes = {
+      start: {
+        eyebrow: "00:17 AM · 알 수 없는 경보음",
+        title: "차가운 바닥에서 눈을 떴다.",
+        text: "어두운 연구실에서 깨어났다. 책상 위에 열쇠가 있고 앞에는 굳게 닫힌 철문이 있다. 천장의 비상등이 일정하지 않은 간격으로 깜빡인다.",
+        choices: [
+          ["열쇠를 줍는다", "key"],
+          ["철문을 밀어본다", "door"],
+          ["주변을 자세히 살핀다", "inspect"]
+        ]
+      },
+      key: {
+        eyebrow: "증거물 01 · 낡은 황동 열쇠",
+        title: "열쇠에는 ‘B-12’가 새겨져 있다.",
+        text: "철문의 열쇠 구멍과는 모양이 다르다. 책상 아래에서 낮은 기계음이 들리고, 벽면의 환기구 너머로 희미한 바람이 스친다.",
+        choices: [
+          ["책상 서랍에 열쇠를 넣는다", "drawer"],
+          ["환기구 덮개를 열어본다", "vent"],
+          ["철문에 억지로 꽂아본다", "alarm"]
+        ]
+      },
+      door: {
+        eyebrow: "철문 · 잠금 상태",
+        title: "문은 꿈쩍도 하지 않는다.",
+        text: "세 번째로 밀자 문 옆 패널이 붉게 켜진다. ‘생체 신호 확인 필요’. 손바닥 모양의 스캐너와 숫자 키패드가 모습을 드러낸다.",
+        choices: [
+          ["손바닥을 스캐너에 댄다", "scanner"],
+          ["키패드에 0712를 입력한다", "gas"],
+          ["책상 쪽으로 돌아간다", "key"]
+        ]
+      },
+      inspect: {
+        eyebrow: "관찰 · 연구실 내부",
+        title: "바닥에 희미한 긁힌 자국이 보인다.",
+        text: "자국은 책상 아래로 이어진다. 벽시계는 7시 12분에 멈춰 있고, 거울에는 손가락으로 쓴 듯한 문장이 있다. ‘나는 실험자가 아니다.’",
+        choices: [
+          ["책상을 옆으로 밀어본다", "hatch"],
+          ["거울을 깨뜨린다", "mirror"],
+          ["0712를 철문 패널에 입력한다", "gas"]
+        ]
+      },
+      drawer: {
+        eyebrow: "B-12 · 개인 보관함",
+        title: "서랍 안에서 신분증을 찾았다.",
+        text: "사진은 분명 당신이지만 이름은 지워져 있다. 카드 뒷면에는 ‘피실험체가 아닌 연구원만 통과 가능’이라고 적혀 있다.",
+        choices: [
+          ["신분증을 문 옆 스캐너에 댄다", "escape"],
+          ["신분증을 부러뜨린다", "lockdown"],
+          ["서랍 속 녹음기를 재생한다", "recording"]
+        ]
+      },
+      vent: {
+        eyebrow: "환기 통로 · 미확인 소음",
+        title: "환기구 안쪽에서 무언가 움직인다.",
+        text: "손을 뻗으면 닿을 거리에 파란 레버가 있다. 그 아래에는 작은 글씨가 적혀 있다. ‘배기 전환 — 보호 장비 없이 조작 금지’.",
+        choices: [
+          ["파란 레버를 당긴다", "gas"],
+          ["통로 안으로 기어 들어간다", "creature"],
+          ["손을 빼고 책상으로 돌아간다", "drawer"]
+        ]
+      },
+      scanner: {
+        eyebrow: "생체 인증 · 분석 중",
+        title: "스캐너가 당신을 기억한다.",
+        text: "화면에 ‘연구원 B-12’가 떠오른다. 그러나 문은 열리지 않는다. 마지막 승인 수단으로 신분증을 요구하고 있다.",
+        choices: [
+          ["책상 서랍을 열어 신분증을 찾는다", "drawer"],
+          ["스캐너를 뜯어낸다", "alarm"],
+          ["비상 해제 버튼을 누른다", "lockdown"]
+        ]
+      },
+      hatch: {
+        eyebrow: "바닥 해치 · 수동 잠금",
+        title: "책상 아래에 숨겨진 탈출구가 있다.",
+        text: "해치에는 B-12형 열쇠 구멍이 있다. 아래에서는 물 흐르는 소리와 함께 차가운 공기가 올라온다.",
+        choices: [
+          ["책상 위 열쇠를 가져온다", "tunnel"],
+          ["해치를 힘으로 들어 올린다", "alarm"],
+          ["철문으로 돌아간다", "door"]
+        ]
+      },
+      mirror: {
+        eyebrow: "거울 뒤편 · 관찰실",
+        title: "깨진 거울 너머에 카메라가 있다.",
+        text: "카메라 아래의 스피커에서 당신의 목소리가 흘러나온다. ‘기억을 되찾았다면 정답은 B-12다.’ 옆에는 작은 제어 패널이 있다.",
+        choices: [
+          ["패널에 B-12를 입력한다", "escape"],
+          ["카메라를 부순다", "lockdown"],
+          ["목소리를 더 들어본다", "recording"]
+        ]
+      },
+      recording: {
+        eyebrow: "음성 기록 · 파일 007",
+        title: "녹음 속 목소리는 당신이었다.",
+        text: "‘사고가 나면 신분증으로 정문을 열어. 환기구와 비상 버튼은 함정이야.’ 마지막에 철문 잠금이 풀리는 소리가 녹음되어 있다.",
+        choices: [
+          ["신분증으로 철문을 연다", "escape"],
+          ["녹음을 믿지 않고 환기구로 간다", "creature"]
+        ]
+      },
+      tunnel: {
+        eyebrow: "지하 배수로 · 출구 신호 감지",
+        title: "해치가 열리고 좁은 사다리가 나타난다.",
+        text: "아래쪽 통로는 두 방향으로 갈라진다. 왼쪽에는 바람이 불고, 오른쪽에는 ‘격리실’이라고 쓰인 희미한 표지판이 보인다.",
+        choices: [
+          ["바람이 부는 왼쪽으로 간다", "escape"],
+          ["격리실 쪽으로 간다", "creature"]
+        ]
+      },
+      escape: { ending: true, good: true, name: "새벽의 연구원", title: "철문 너머로 새벽빛이 쏟아진다.", text: "당신은 연구원이었고, 사고 직전 스스로 기억을 봉인했다. 복도 끝 비상구가 열리며 차가운 새벽 공기가 폐 깊숙이 들어온다. 격리 구역 07에서 탈출했다." },
+      gas: { ending: true, good: false, name: "잘못된 환기", title: "천장에서 하얀 안개가 내려온다.", text: "입력한 숫자는 비밀번호가 아니라 실험실의 가스 배출 코드였다. 시야가 흐려지고, 벽시계의 초침이 다시 움직이기 시작한다." },
+      alarm: { ending: true, good: false, name: "무단 침입자", title: "붉은 경보등이 연구실을 삼킨다.", text: "강제 개방 신호와 함께 모든 출구가 봉쇄된다. 스피커의 무감정한 목소리가 마지막으로 들린다. ‘침입자 격리 절차를 시작합니다.’" },
+      lockdown: { ending: true, good: false, name: "영구 봉쇄", title: "비상 잠금이 영구 봉쇄로 전환된다.", text: "당신이 누른 것은 탈출 버튼이 아니었다. 전원이 하나씩 꺼지고, 철문 위 표시창에는 단 한 문장만 남는다. ‘해제 권한 없음.’" },
+      creature: { ending: true, good: false, name: "격리 실패", title: "어둠 속에서 두 개의 눈이 떠진다.", text: "그 소리는 바람도, 기계음도 아니었다. 무언가가 통로를 막아선다. 연구실의 철문은 위험을 가두기 위해 닫혀 있었던 것이다." }
+    };
+
+    const TOTAL_ENDINGS = 5;
+    // 파일 미리보기처럼 저장소 접근이 제한된 환경에서도 게임은 계속 작동한다.
+    const memoryStorage = { best: null, endings: new Set() };
+    const storage = {
+      get best() {
+        try {
+          const n = Number(window.localStorage.getItem("lab07_best"));
+          return n > 0 ? n : memoryStorage.best;
+        } catch {
+          return memoryStorage.best;
+        }
+      },
+      set best(v) {
+        memoryStorage.best = v;
+        try { window.localStorage.setItem("lab07_best", String(v)); } catch { /* 메모리에만 보관 */ }
+      },
+      get endings() {
+        try {
+          const saved = JSON.parse(window.localStorage.getItem("lab07_endings")) || [];
+          return new Set([...memoryStorage.endings, ...saved]);
+        } catch {
+          return new Set(memoryStorage.endings);
+        }
+      },
+      set endings(v) {
+        memoryStorage.endings = new Set(v);
+        try { window.localStorage.setItem("lab07_endings", JSON.stringify([...v])); } catch { /* 메모리에만 보관 */ }
+      }
+    };
+
+    let choicesMade = 0;
+    let current = "start";
+    let transitioning = false;
+    const content = document.getElementById("content");
+    const turnCount = document.getElementById("turnCount");
+    const locationLabel = document.getElementById("location");
+
+    function updateRecords() {
+      document.getElementById("bestRecord").textContent = storage.best ? `${storage.best}회` : "—";
+      document.getElementById("endingRecord").textContent = `${Math.min(storage.endings.size, TOTAL_ENDINGS)} / ${TOTAL_ENDINGS}`;
+    }
+
+    function sceneMarkup(scene) {
+      const buttons = scene.choices.map((choice, i) => `
+        <button class="choice" type="button" data-next="${choice[1]}">
+          <span class="key">${i + 1}</span><span class="choice-text">${choice[0]}</span><span class="arrow" aria-hidden="true">→</span>
+        </button>`).join("");
+      return `<p class="eyebrow">${scene.eyebrow}</p><h1>${scene.title}</h1><p class="story">${scene.text}</p><div class="choices">${buttons}</div>`;
+    }
+
+    function endingMarkup(scene) {
+      return `
+        <div class="ending-badge ${scene.good ? "" : "bad"}">${scene.good ? "ESCAPE SUCCESS" : "BAD ENDING"}</div>
+        <h1>${scene.title}</h1><p class="story">${scene.text}</p>
+        <div class="result-grid">
+          <div class="result-box"><span>선택한 횟수</span><strong>${choicesMade}회</strong></div>
+          <div class="result-box"><span>도달한 엔딩 이름</span><strong>${scene.name}</strong></div>
+        </div>
+        <button class="choice restart" type="button" data-restart="true">처음부터 다시하기</button>`;
+    }
+
+    function render(id, initial = false) {
+      current = id;
+      const scene = scenes[id];
+      locationLabel.textContent = scene.ending ? (scene.good ? "OUTSIDE · 05:42" : "CASE · CLOSED") : "LAB · 07";
+      turnCount.textContent = String(choicesMade).padStart(2, "0");
+      content.innerHTML = scene.ending ? endingMarkup(scene) : sceneMarkup(scene);
+      content.classList.remove("leaving", "entering");
+      void content.offsetWidth;
+      content.classList.add("entering");
+      if (!initial) content.querySelector("button")?.focus({ preventScroll: true });
+      transitioning = false;
+    }
+
+    function choose(next) {
+      if (transitioning) return;
+      transitioning = true;
+      choicesMade += 1;
+      const nextScene = scenes[next];
+      if (nextScene.ending) {
+        const endings = storage.endings;
+        endings.add(nextScene.name);
+        storage.endings = endings;
+        if (!storage.best || choicesMade < storage.best) storage.best = choicesMade;
+        updateRecords();
+      }
+      content.classList.add("leaving");
+      setTimeout(() => render(next), 190);
+    }
+
+    function restart() {
+      if (transitioning) return;
+      transitioning = true;
+      choicesMade = 0;
+      content.classList.add("leaving");
+      setTimeout(() => render("start"), 190);
+    }
+
+    content.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      if (button.dataset.restart) restart();
+      else if (button.dataset.next) choose(button.dataset.next);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (!["1", "2", "3"].includes(event.key) || scenes[current].ending) return;
+      const buttons = content.querySelectorAll("[data-next]");
+      const target = buttons[Number(event.key) - 1];
+      if (target) target.click();
+    });
+
+    updateRecords();
+    render("start", true);
+  </script>
+</body>
+</html>
