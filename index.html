@@ -95,7 +95,24 @@
       border-radius: 9px;
       box-shadow: inset 0 0 18px rgba(135, 234, 213, .05);
     }
-    .brand-copy strong { display: block; font-size: .86rem; letter-spacing: .16em; }
+    .brand-copy strong {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--accent);
+      font: 650 .86rem/1.2 ui-monospace, "Cascadia Mono", "Noto Sans Mono CJK KR", monospace;
+      letter-spacing: .13em;
+      text-shadow: 0 0 14px rgba(135, 234, 213, .28);
+    }
+    .brand-copy strong::after {
+      content: "";
+      width: 2px;
+      height: 1em;
+      background: currentColor;
+      box-shadow: 0 0 8px rgba(135, 234, 213, .6);
+      animation: cursor-blink 1.05s steps(1, end) infinite;
+    }
+    @keyframes cursor-blink { 0%, 48% { opacity: 1; } 49%, 100% { opacity: 0; } }
     .brand-copy span { display: block; margin-top: 2px; color: var(--muted); font: 500 .68rem/1.2 ui-monospace, monospace; letter-spacing: .08em; }
 
     .records { display: flex; gap: 10px; }
